@@ -307,6 +307,9 @@ void Disk2InterfaceCard::ReadTrack(const int drive, ULONG uExecutedCycles)
 			// Update bitStream position for *current* track before re-calc'ing position for new track
 			UINT bitCellDelta = GetBitCellDelta(uExecutedCycles);
 			UpdateBitStreamPosition(*pFloppy, bitCellDelta);
+#if LOG_DISK_ENABLED
+			LOG_DISK("%08X: ReadTrack: bitCellDelta=%08X\r\n", (UINT32)g_nCumulativeCycles, bitCellDelta);
+#endif
 		}
 
 		const UINT32 currentPosition = pFloppy->m_byte;
@@ -342,6 +345,11 @@ void Disk2InterfaceCard::ReadTrack(const int drive, ULONG uExecutedCycles)
 			pFloppy->m_bitMask = 1 << 7;
 			pFloppy->m_extraCycles = 0.0;
 			pDrive->m_headWindow = 0;
+
+#if 0
+			if (pDrive->m_phasePrecise == 4.0)
+				TS18Info(*pFloppy);
+#endif
 		}
 
 		pFloppy->m_trackimagedata = (pFloppy->m_nibbles != 0);
@@ -1079,6 +1087,7 @@ void Disk2InterfaceCard::ResetLogicStateSequencer(void)
 	m_foundT00S00Pattern = false;
 }
 
+static UINT g_diff = 0;
 UINT Disk2InterfaceCard::GetBitCellDelta(const ULONG uExecutedCycles)
 {
 	FloppyDisk& floppy = m_floppyDrive[m_currDrive].m_disk;
@@ -1091,11 +1100,22 @@ UINT Disk2InterfaceCard::GetBitCellDelta(const ULONG uExecutedCycles)
 	// . Overall:       0->20: cycleDelta=20, bitCellDelta=5, extraCycles=0
 	UINT bitCellDelta;
 #if 0
-	if (optimalBitTiming == 32)
+	if (true)//(optimalBitTiming == 32)
 	{
 		const ULONG cycleDelta = (ULONG)(g_nCumulativeCycles - m_diskLastCycle) + (BYTE) floppy.m_extraCycles;
 		bitCellDelta = cycleDelta / 4;	// DIV 4 for 4us per bit-cell
 		floppy.m_extraCycles = cycleDelta & 3;	// MOD 4 : remainder carried forward for next time
+
+		const double cycleDelta2 = (double)(g_nCumulativeCycles - m_diskLastCycle) + floppy.m_extraCycles;
+		const double bitTime2 = 0.125 * (double)32;	// 125ns units
+		UINT bitCellDelta2 = (UINT)floor(cycleDelta / bitTime2);
+		//floppy.m_extraCycles = (double)cycleDelta - ((double)bitCellDelta * bitTime);
+
+		if (bitCellDelta != bitCellDelta2)
+		{
+			_ASSERT(0);
+			g_diff++;
+		}
 	}
 	else
 #endif
@@ -1431,6 +1451,69 @@ void Disk2InterfaceCard::DataShiftWriteWOZ(WORD pc, WORD addr, ULONG uExecutedCy
 //===========================================================================
 
 #ifdef _DEBUG
+void Disk2InterfaceCard::TS18Info(FloppyDisk floppy)	// pass a copy of m_floppy
+{
+	BYTE shiftReg = 0;
+	UINT64 nibble6 = 0;
+	BYTE sector[6] = { 0xff,0xff,0xff, 0xff,0xff,0xff };
+	BYTE flag = 0;
+					// 96,97,00,00,9A,9B,00,9D,9E
+	BYTE nibTranslate[9] = { 0, 1, 0xff, 0xff, 2, 3, 0xff, 4, 5 };
+
+	const UINT startBitOffset = floppy.m_bitOffset;
+
+	while (1)
+	{
+		BYTE n = floppy.m_trackimage[floppy.m_byte];
+		BYTE outputBit = (n & floppy.m_bitMask) ? 1 : 0;
+
+		IncBitStream(floppy);
+
+		if (startBitOffset == floppy.m_bitOffset)	// done complete track?
+			break;
+
+		if (shiftReg == 0 && outputBit == 0)
+			continue;
+
+		shiftReg <<= 1;
+		shiftReg |= outputBit;
+
+		if ((shiftReg & 0x80) == 0)
+			continue;
+
+		nibble6 <<= 8;
+		nibble6 |= shiftReg;
+
+		if ((nibble6 & 0xffff000000ff) == 0xd59d000000aa)
+		{
+			BYTE sec = (nibble6 >> 16) & 0xff;
+			if (sec >= 0x96 && sec <= 0x9E)
+			{
+				sec = nibTranslate[sec - 0x96];
+				if ((sec != 0xff) && (sector[sec] == 0xff))
+				{
+					sector[sec] = flag++;
+				}
+			}
+		}
+
+		shiftReg = 0;
+	}
+
+	if (flag == 6)
+	{
+		int curr = -1, next = 1;
+		for (UINT i = 0; i < 6; i++)
+		{
+			if (sector[i] == 0)
+				next = i;
+			else if (sector[i] == 5)
+				curr = i;
+		}
+		LOG_DISK("Between sectors: %d and %d\n", curr, next);
+	}
+}
+
 // Dump nibbles from current position bitstream wraps to same position
 // NB. Need to define LOG_DISK_NIBBLES_READ so that GetReadD5AAxxDetectedString() works.
 void Disk2InterfaceCard::DumpTrackWOZ(FloppyDisk floppy)	// pass a copy of m_floppy
@@ -1864,6 +1947,14 @@ BYTE __stdcall Disk2InterfaceCard::IORead(WORD pc, WORD addr, BYTE bWrite, BYTE 
 	ImageInfo* pImage = pCard->m_floppyDrive[pCard->m_currDrive].m_disk.m_imagehandle;
 	bool isWOZ = ImageIsWOZ(pImage);
 
+#if LOG_DISK_ENABLED
+	if (isWOZ && ((addr & 0xf)<8))
+	{
+		FloppyDisk& disk = pCard->m_floppyDrive[pCard->m_currDrive].m_disk;
+		LOG_DISK("%08X: IORead %04X: %04X / %04X\r\n", (UINT32)g_nCumulativeCycles, addr, disk.m_bitOffset, disk.m_bitCount);
+	}
+#endif
+
 	if (isWOZ && pCard->m_seqFunc.function == dataShiftWrite)	// Occurs at end of sector write ($C0EE)
 		pCard->DataShiftWriteWOZ(pc, addr, nExecutedCycles);	// Finish any previous write
 
@@ -1895,6 +1986,13 @@ BYTE __stdcall Disk2InterfaceCard::IORead(WORD pc, WORD addr, BYTE bWrite, BYTE 
 		if (isWOZ && pCard->m_seqFunc.function != dataShiftWrite)
 			pCard->DataLatchReadWriteWOZ(pc, addr, bWrite, nExecutedCycles);
 
+#if LOG_DISK_ENABLED
+		if (isWOZ && ((addr & 0xf) < 8))
+		{
+			FloppyDisk& disk = pCard->m_floppyDrive[pCard->m_currDrive].m_disk;
+			LOG_DISK("%08X: IORead %04X: %04X / %04X\r\n", (UINT32)g_nCumulativeCycles, addr, disk.m_bitOffset, disk.m_bitCount);
+		}
+#endif
 		return pCard->m_floppyLatch;
 	}
 
