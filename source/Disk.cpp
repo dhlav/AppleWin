@@ -315,6 +315,34 @@ void Disk2InterfaceCard::ReadTrack(const int drive, ULONG uExecutedCycles)
 		const UINT32 currentPosition = pFloppy->m_byte;
 		const UINT32 currentTrackLength = pFloppy->m_nibbles;
 
+#if _DEBUG
+		static int dbgWOZ0 = 0;
+		if (dbgWOZ0)
+		{
+			pFloppy->m_byte = 0;
+			pFloppy->m_bitOffset = 0;
+			pFloppy->m_bitMask = 1 << 7;
+
+			for (UINT trk = 0; trk < 35; trk++)
+			{
+				float phase = (float)trk * 2;
+				ImageReadTrack(
+					pFloppy->m_imagehandle,
+					phase,
+					pFloppy->m_trackimage,
+					&pFloppy->m_nibbles,
+					&pFloppy->m_bitCount,
+					m_enhanceDisk);
+
+				TS18Info(*pFloppy, phase);
+
+				if (trk == 9)
+					if (dbgWOZ0)
+						DumpTrackWOZ(*pFloppy);
+			}
+		}
+#endif
+
 		ImageReadTrack(
 			pFloppy->m_imagehandle,
 			pDrive->m_phasePrecise,
@@ -346,9 +374,12 @@ void Disk2InterfaceCard::ReadTrack(const int drive, ULONG uExecutedCycles)
 			pFloppy->m_extraCycles = 0.0;
 			pDrive->m_headWindow = 0;
 
-#if 0
-			if (pDrive->m_phasePrecise == 4.0)
-				TS18Info(*pFloppy);
+#if _DEBUG
+			static int dbgWOZ1 = 0;
+			if (dbgWOZ1)
+			{
+				TS18Info(*pFloppy, pDrive->m_phasePrecise);
+			}
 #endif
 		}
 
@@ -1451,7 +1482,7 @@ void Disk2InterfaceCard::DataShiftWriteWOZ(WORD pc, WORD addr, ULONG uExecutedCy
 //===========================================================================
 
 #ifdef _DEBUG
-void Disk2InterfaceCard::TS18Info(FloppyDisk floppy)	// pass a copy of m_floppy
+void Disk2InterfaceCard::TS18Info(FloppyDisk floppy, float phase)	// pass a copy of m_floppy
 {
 	BYTE shiftReg = 0;
 	UINT64 nibble6 = 0;
@@ -1510,7 +1541,11 @@ void Disk2InterfaceCard::TS18Info(FloppyDisk floppy)	// pass a copy of m_floppy
 			else if (sector[i] == 5)
 				curr = i;
 		}
-		LOG_DISK("Between sectors: %d and %d\n", curr, next);
+		LogOutput("Phase=%05.2f ($%04X bits): Between sectors: %d and %d\n", phase, floppy.m_bitCount, curr, next);
+	}
+	else
+	{
+		LogOutput("Phase=%05.2f ($%04X bits): Only %d sectors!\n", phase, floppy.m_bitCount, flag);
 	}
 }
 
