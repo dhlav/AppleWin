@@ -454,10 +454,10 @@ bool CPropertySheetHelper::HardwareConfigChanged(HWND hWnd)
 		if (CONFIG_CHANGED(m_Slot[SLOT4]))
 			strMsgMain += GetSlot(SLOT4);
 
-		if (CONFIG_CHANGED(m_Slot[SLOT5]))
-			strMsgMain += GetSlot(SLOT5);
+		//if (CONFIG_CHANGED(m_Slot[SLOT5]))
+		//	strMsgMain += GetSlot(SLOT5);
 
-		if (CONFIG_CHANGED(m_Slot[SLOT7]))
+		if (CONFIG_CHANGED(m_Slot[SLOT5]))
 			strMsgMain += ". Harddisk(s) have been plugged/unplugged\n";
 
 		if (CONFIG_CHANGED(m_bEnableTheFreezesF8Rom))

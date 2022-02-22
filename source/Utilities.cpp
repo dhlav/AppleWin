@@ -291,10 +291,10 @@ void LoadConfiguration(bool loadImages)
 			}
 			else if (slot == SLOT4 && REGLOAD(TEXT(REGVALUE_SLOT4), &dwTmp))
 				GetCardMgr().Insert(SLOT4, (SS_CARDTYPE)dwTmp);
-			else if (slot == SLOT5 && REGLOAD(TEXT(REGVALUE_SLOT5), &dwTmp))
-				GetCardMgr().Insert(SLOT5, (SS_CARDTYPE)dwTmp);
-			else if (slot == SLOT7 && REGLOAD(TEXT(REGVALUE_HDD_ENABLED), &dwTmp) && dwTmp == 1)	// GH#1015
-				GetCardMgr().Insert(SLOT7, CT_GenericHDD);
+			//else if (slot == SLOT5 && REGLOAD(TEXT(REGVALUE_SLOT5), &dwTmp))
+			//	GetCardMgr().Insert(SLOT5, (SS_CARDTYPE)dwTmp);
+			else if (slot == SLOT5 && REGLOAD(TEXT(REGVALUE_HDD_ENABLED), &dwTmp) && dwTmp == 1)	// GH#1015
+				GetCardMgr().Insert(SLOT5, CT_GenericHDD);
 		}
 	}
 
@@ -312,10 +312,10 @@ void LoadConfiguration(bool loadImages)
 		GetCurrentDirectory(sizeof(szFilename), szFilename);
 	SetCurrentImageDir(szFilename);
 
-	if (loadImages && GetCardMgr().QuerySlot(SLOT7) == CT_GenericHDD)
+	if (loadImages && GetCardMgr().QuerySlot(SLOT5) == CT_GenericHDD)
 	{
-		dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT7)).LoadLastDiskImage(HARDDISK_1);
-		dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT7)).LoadLastDiskImage(HARDDISK_2);
+		dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT5)).LoadLastDiskImage(HARDDISK_1);
+		dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT5)).LoadLastDiskImage(HARDDISK_2);
 	}
 
 	//
@@ -403,20 +403,20 @@ static bool DoDiskInsert(const UINT slot, const int nDrive, LPCSTR szFileName)
 
 static bool DoHardDiskInsert(const int nDrive, LPCSTR szFileName)
 {
-	_ASSERT(GetCardMgr().QuerySlot(SLOT7) == CT_GenericHDD);
-	if (GetCardMgr().QuerySlot(SLOT7) != CT_GenericHDD)
+	_ASSERT(GetCardMgr().QuerySlot(SLOT5) == CT_GenericHDD);
+	if (GetCardMgr().QuerySlot(SLOT5) != CT_GenericHDD)
 		return false;
 
 	if (szFileName[0] == '\0')
 	{
-		dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT7)).Unplug(nDrive);
+		dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT5)).Unplug(nDrive);
 		return true;
 	}
 
 	std::string strPathName = GetFullPath(szFileName);
 	if (strPathName.empty()) return false;
 
-	BOOL bRes = dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT7)).Insert(nDrive, strPathName);
+	BOOL bRes = dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT5)).Insert(nDrive, strPathName);
 	bool res = (bRes == TRUE);
 	if (res)
 		SetCurrentDir(strPathName);
@@ -460,8 +460,8 @@ void InsertHardDisks(LPCSTR szImageName_harddisk[NUM_HARDDISKS], bool& bBoot)
 	if (!szImageName_harddisk[HARDDISK_1] && !szImageName_harddisk[HARDDISK_2])
 		return;
 
-	if (GetCardMgr().QuerySlot(SLOT7) != CT_GenericHDD)
-		GetCardMgr().Insert(SLOT7, CT_GenericHDD);	// Enable the Harddisk controller card
+	if (GetCardMgr().QuerySlot(SLOT5) != CT_GenericHDD)
+		GetCardMgr().Insert(SLOT5, CT_GenericHDD);	// Enable the Harddisk controller card
 
 	bool bRes = true;
 
@@ -543,8 +543,8 @@ void GetAppleWindowTitle()
 void ResetMachineState()
 {
 	GetCardMgr().GetDisk2CardMgr().Reset(true);
-	if (GetCardMgr().QuerySlot(SLOT7) == CT_GenericHDD)
-		GetCardMgr().GetRef(SLOT7).Reset(true);
+	if (GetCardMgr().QuerySlot(SLOT5) == CT_GenericHDD)
+		GetCardMgr().GetRef(SLOT5).Reset(true);
 	if (GetCardMgr().QuerySlot(SLOT3) == CT_VidHD)
 		GetCardMgr().GetRef(SLOT3).Reset(true);
 	g_bFullSpeed = 0;	// Might've hit reset in middle of InternalCpuExecute() - so beep may get (partially) muted
@@ -600,8 +600,8 @@ void CtrlReset()
 
 	GetPravets().Reset();
 	GetCardMgr().GetDisk2CardMgr().Reset();
-	if (GetCardMgr().QuerySlot(SLOT7) == CT_GenericHDD)
-		GetCardMgr().GetRef(SLOT7).Reset(false);
+	if (GetCardMgr().QuerySlot(SLOT5) == CT_GenericHDD)
+		GetCardMgr().GetRef(SLOT5).Reset(false);
 	if (GetCardMgr().QuerySlot(SLOT3) == CT_VidHD)
 		GetCardMgr().GetRef(SLOT3).Reset(false);
 	KeybReset();

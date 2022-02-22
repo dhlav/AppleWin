@@ -81,10 +81,10 @@ INT_PTR CPageDisk::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, LPARA
 						m_PropertySheetHelper.SetSlot(SLOT5, m_PropertySheetHelper.GetConfigOld().m_Slot[SLOT5]);
 				}
 				// Support 'Cancel' case for Slot-7 HDD enabled/disabled - needed as the HarddiskInterfaceCard object is created on toggling the checkbox. See [*2]
-				if (m_PropertySheetHelper.GetConfigOld().m_Slot[SLOT7] != m_PropertySheetHelper.GetConfigNew().m_Slot[SLOT7])
+				if (m_PropertySheetHelper.GetConfigOld().m_Slot[SLOT5] != m_PropertySheetHelper.GetConfigNew().m_Slot[SLOT5])
 				{
-					if (m_PropertySheetHelper.GetConfigOld().m_Slot[SLOT7] == CT_GenericHDD || m_PropertySheetHelper.GetConfigNew().m_Slot[SLOT7] == CT_GenericHDD)
-						m_PropertySheetHelper.SetSlot(SLOT7, m_PropertySheetHelper.GetConfigOld().m_Slot[SLOT7]);
+					if (m_PropertySheetHelper.GetConfigOld().m_Slot[SLOT5] == CT_GenericHDD || m_PropertySheetHelper.GetConfigNew().m_Slot[SLOT5] == CT_GenericHDD)
+						m_PropertySheetHelper.SetSlot(SLOT5, m_PropertySheetHelper.GetConfigOld().m_Slot[SLOT5]);
 				}
 				DlgCANCEL(hWnd);
 				break;
@@ -152,11 +152,11 @@ INT_PTR CPageDisk::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, LPARA
 				// Add some user-protection, as (currently) removing the HDD images can't be undone!
 				if (checked || !checked && GetFrame().FrameMessageBox("This will unplug the HDD image(s)! Proceed?", "Eject/Unplug Warning", MB_ICONWARNING | MB_YESNO | MB_SETFOREGROUND) != IDNO)
 				{
-					m_PropertySheetHelper.GetConfigNew().m_Slot[SLOT7] = checked ? CT_GenericHDD : CT_Empty;
+					m_PropertySheetHelper.GetConfigNew().m_Slot[SLOT5] = checked ? CT_GenericHDD : CT_Empty;
 					// NB. Unusual as it creates slot object when checkbox is toggled (instead of after OK)
 					// Needed as we need a HarddiskInterfaceCard object so that images can be inserted/ejected [*2]
-					m_PropertySheetHelper.SetSlot(SLOT7, m_PropertySheetHelper.GetConfigNew().m_Slot[SLOT7]);
-					InitComboHDD(hWnd, SLOT7);	// disabling will remove the HDD images - so update drop-down to reflect this
+					m_PropertySheetHelper.SetSlot(SLOT5, m_PropertySheetHelper.GetConfigNew().m_Slot[SLOT5]);
+					InitComboHDD(hWnd, SLOT5);	// disabling will remove the HDD images - so update drop-down to reflect this
 					EnableHDD(hWnd, checked);
 				}
 				else
@@ -187,13 +187,13 @@ INT_PTR CPageDisk::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, LPARA
 			else
 				EnableFloppyDrive(hWnd, FALSE, slot);	// disable if slot6 is empty (or has some other card in it)
 
-			InitComboHDD(hWnd, SLOT7);
+			InitComboHDD(hWnd, SLOT5);
 
 			TCHAR PathToCiderPress[MAX_PATH];
 			RegLoadString(TEXT(REG_CONFIG), REGVALUE_CIDERPRESSLOC, 1, PathToCiderPress, MAX_PATH, TEXT(""));
 			SendDlgItemMessage(hWnd, IDC_CIDERPRESS_FILENAME ,WM_SETTEXT, 0, (LPARAM)PathToCiderPress);
 
-			CheckDlgButton(hWnd, IDC_HDD_ENABLE, (GetCardMgr().QuerySlot(SLOT7) == CT_GenericHDD) ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton(hWnd, IDC_HDD_ENABLE, (GetCardMgr().QuerySlot(SLOT5) == CT_GenericHDD) ? BST_CHECKED : BST_UNCHECKED);
 
 			EnableHDD(hWnd, IsDlgButtonChecked(hWnd, IDC_HDD_ENABLE));
 
@@ -235,9 +235,9 @@ void CPageDisk::InitComboHDD(HWND hWnd, UINT /*slot*/)
 	m_PropertySheetHelper.FillComboBox(hWnd, IDC_COMBO_HDD1, m_defaultHDDOptions, -1);
 	m_PropertySheetHelper.FillComboBox(hWnd, IDC_COMBO_HDD2, m_defaultHDDOptions, -1);
 
-	if (GetCardMgr().QuerySlot(SLOT7) != CT_GenericHDD)
+	if (GetCardMgr().QuerySlot(SLOT5) != CT_GenericHDD)
 		return;
-	HarddiskInterfaceCard& card = dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT7));
+	HarddiskInterfaceCard& card = dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT5));
 
 	if (!card.GetFullName(HARDDISK_1).empty())
 	{
@@ -328,10 +328,10 @@ void CPageDisk::HandleHDDCombo(HWND hWnd, UINT driveSelected, UINT comboSelected
 	if (!IsDlgButtonChecked(hWnd, IDC_HDD_ENABLE))
 		return;
 
-	_ASSERT(GetCardMgr().QuerySlot(SLOT7) == CT_GenericHDD);
-	if (GetCardMgr().QuerySlot(SLOT7) != CT_GenericHDD)
+	_ASSERT(GetCardMgr().QuerySlot(SLOT5) == CT_GenericHDD);
+	if (GetCardMgr().QuerySlot(SLOT5) != CT_GenericHDD)
 		return;
-	HarddiskInterfaceCard& card = dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT7));
+	HarddiskInterfaceCard& card = dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT5));
 
 	// Search from "select hard drive"
 	DWORD dwOpenDialogIndex = (DWORD)SendDlgItemMessage(hWnd, comboSelected, CB_FINDSTRINGEXACT, -1, (LPARAM)&m_defaultHDDOptions[0]);
@@ -465,13 +465,13 @@ void CPageDisk::HandleHDDSwap(HWND hWnd)
 	if (!RemovalConfirmation(IDC_HDD_SWAP))
 		return;
 
-	if (GetCardMgr().QuerySlot(SLOT7) != CT_GenericHDD)
+	if (GetCardMgr().QuerySlot(SLOT5) != CT_GenericHDD)
 		return;
 	
-	if (!dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT7)).ImageSwap())
+	if (!dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT5)).ImageSwap())
 		return;
 
-	InitComboHDD(hWnd, SLOT7);
+	InitComboHDD(hWnd, SLOT5);
 }
 
 UINT CPageDisk::RemovalConfirmation(UINT uCommand)

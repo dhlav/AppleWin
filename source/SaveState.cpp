@@ -138,8 +138,8 @@ void Snapshot_GetDefaultFilenameAndPath(std::string& defaultFilename, std::strin
 	// Attempt to get a default filename/path based on harddisk plugged-in or floppy disk inserted
 	// . Priority given to harddisk over floppy images
 
-	if (GetCardMgr().QuerySlot(SLOT7) == CT_GenericHDD)
-		dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT7)).GetFilenameAndPathForSaveState(defaultFilename, defaultPath);
+	if (GetCardMgr().QuerySlot(SLOT5) == CT_GenericHDD)
+		dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT5)).GetFilenameAndPathForSaveState(defaultFilename, defaultPath);
 
 	if (defaultFilename.empty())
 		GetCardMgr().GetDisk2CardMgr().GetFilenameAndPathForSaveState(defaultFilename, defaultPath);

@@ -130,7 +130,7 @@ Overview
 HarddiskInterfaceCard::HarddiskInterfaceCard(UINT slot) :
 	Card(CT_GenericHDD, slot)
 {
-	if (m_slot != SLOT7)	// fixme
+	if (m_slot != SLOT5 && m_slot != SLOT7)	// fixme  - d.hlavac checking both in case of old reg under 7
 		ThrowErrorInvalidSlot();
 
 	m_unitNum = HARDDISK_1 << 7;	// b7=unit
@@ -274,7 +274,7 @@ void HarddiskInterfaceCard::SaveLastDiskImage(const int drive)
 
 	// For now, only update 'HDV Starting Directory' for slot7 & drive1
 	// . otherwise you'll get inconsistent results if you set drive1, then drive2 (and the images were in different folders)
-	if (m_slot != SLOT7 || drive != HARDDISK_1)
+	if (m_slot != SLOT5 || drive != HARDDISK_1)
 		return;
 
 	TCHAR szPathName[MAX_PATH];

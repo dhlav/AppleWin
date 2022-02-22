@@ -751,8 +751,8 @@ void Win32Frame::DrawStatusArea (HDC passdc, int drawflags)
 	const bool bCaps = KeybGetCapsStatus();
 
 	Disk_Status_e eHardDriveStatus = DISK_STATUS_OFF;
-	if (GetCardMgr().QuerySlot(SLOT7) == CT_GenericHDD)
-		dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT7)).GetLightStatus(&eHardDriveStatus);
+	if (GetCardMgr().QuerySlot(SLOT5) == CT_GenericHDD)
+		dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT5)).GetLightStatus(&eHardDriveStatus);
 
 	if (g_bIsFullScreen)
 	{
@@ -970,8 +970,8 @@ LRESULT Win32Frame::WndProc(
       DebugDestroy();
       if (!g_bRestart) {
 		GetCardMgr().GetDisk2CardMgr().Destroy();
-		if (GetCardMgr().QuerySlot(SLOT7) == CT_GenericHDD)
-			dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT7)).Destroy();
+		if (GetCardMgr().QuerySlot(SLOT5) == CT_GenericHDD)
+			dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT5)).Destroy();
       }
       PrintDestroy();
       if (GetCardMgr().IsSSCInstalled())
